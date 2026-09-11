@@ -48,16 +48,12 @@ FetchContent_Declare(json GIT_REPOSITORY https://github.com/nlohmann/json.git GI
 set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(json)
 
-# ---- Luau ----
+# ---- Luau (always via FetchContent, no submodule needed) ----
 set(LUAU_BUILD_CLI OFF CACHE BOOL "" FORCE)
 set(LUAU_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LUAU_BUILD_WEB OFF CACHE BOOL "" FORCE)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/luau/CMakeLists.txt")
-    add_subdirectory(third_party/luau EXCLUDE_FROM_ALL)
-else()
-    FetchContent_Declare(luau GIT_REPOSITORY https://github.com/luau-lang/luau.git GIT_TAG 0.702)
-    FetchContent_MakeAvailable(luau)
-endif()
+FetchContent_Declare(luau GIT_REPOSITORY https://github.com/luau-lang/luau.git GIT_TAG 0.702)
+FetchContent_MakeAvailable(luau)
 
 file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS
     "src/syscalls/*.cpp"
@@ -80,9 +76,9 @@ set_target_properties(Syntax PROPERTIES LINKER_LANGUAGE CXX OUTPUT_NAME "Syntax"
 
 target_include_directories(Syntax PRIVATE
     src include
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/luau/Compiler/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/luau/Ast/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/luau/Common/include
+    ${luau_SOURCE_DIR}/Compiler/include
+    ${luau_SOURCE_DIR}/Ast/include
+    ${luau_SOURCE_DIR}/Common/include
     ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR}
     ${zstd_SOURCE_DIR}/lib ${zstd_SOURCE_DIR}/lib/common
     ${blake3_SOURCE_DIR}/c
