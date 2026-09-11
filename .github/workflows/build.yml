@@ -19,27 +19,29 @@ jobs:
         with:
           cmake-version: '3.28'
 
-      - name: Configure
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Configure C++
         run: cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build DLL
         run: cmake --build build --config Release --parallel
 
-      - name: Upload DLL
+      - name: Build UI .exe
+        run: dotnet publish ui/SyntaxUI.csproj -c Release -r win-x64 --self-contained false -o publish
+
+      - name: Bundle
+        shell: pwsh
+        run: |
+          Copy-Item build/Release/Syntax.dll publish/
+          if (Test-Path build/Release/Syntax.lib) { Copy-Item build/Release/Syntax.lib publish/ }
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Syntax-x64-Release
-          path: |
-            build/Release/Syntax.dll
-            build/Release/Syntax.lib
+          path: publish/*
           if-no-files-found: error
-
-  # Optional: verify it at least configures on Linux
-  build-linux-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release
-      - run: cmake --build build --parallel 2>&1 | head -n 100
