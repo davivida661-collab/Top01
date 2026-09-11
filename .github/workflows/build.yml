@@ -12,18 +12,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '3.28'
-
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
       - name: Configure C++
-        run: cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Release
 
       - name: Build DLL
         run: cmake --build build --config Release --parallel
@@ -36,6 +34,7 @@ jobs:
         run: |
           Copy-Item build/Release/Syntax.dll publish/
           if (Test-Path build/Release/Syntax.lib) { Copy-Item build/Release/Syntax.lib publish/ }
+          dir publish
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
