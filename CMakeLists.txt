@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 11)
 
-# Warnings & optimization
 if(MSVC)
     add_compile_options(/W4 /permissive- /Zc:__cplusplus)
     foreach(flag CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE)
@@ -32,13 +31,19 @@ set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
 set(ZSTD_MULTITHREAD_SUPPORT OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(zstd)
 
-# ---- BLAKE3 (portable C only to avoid AVX2 asm LNK1181 on VS2026) ----
-FetchContent_Declare(blake3 GIT_REPOSITORY https://github.com/BLAKE3-team/BLAKE3.git GIT_TAG 1.8.2 SOURCE_SUBDIR c)
+# ---- BLAKE3 (use portable C implementation to avoid AVX2 asm LNK1181 on VS2026) ----
+# Instead of FetchContent c/ subdir (which includes .asm objects), build only the portable files
+FetchContent_Declare(blake3 GIT_REPOSITORY https://github.com/BLAKE3-team/BLAKE3.git GIT_TAG 1.8.2)
 FetchContent_MakeAvailable(blake3)
-# Force blake3 to not use AVX2/SSE assembly objects that fail on hosted runner
-if(TARGET blake3)
-  target_compile_definitions(blake3 PRIVATE BLAKE3_NO_AVX2 BLAKE3_NO_AVX512 BLAKE3_NO_SSE41 BLAKE3_NO_SSE2)
-endif()
+# Build blake3 as static lib from portable C files only
+add_library(blake3 STATIC
+    ${blake3_SOURCE_DIR}/c/blake3.c
+    ${blake3_SOURCE_DIR}/c/blake3_dispatch.c
+    ${blake3_SOURCE_DIR}/c/blake3_portable.c
+)
+target_include_directories(blake3 PUBLIC ${blake3_SOURCE_DIR}/c)
+set_target_properties(blake3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(blake3 PUBLIC BLAKE3_NO_AVX2 BLAKE3_NO_AVX512 BLAKE3_NO_SSE41 BLAKE3_NO_SSE2)
 
 # ---- httplib ----
 FetchContent_Declare(httplib GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git GIT_TAG v0.20.0)
@@ -52,7 +57,7 @@ FetchContent_Declare(json GIT_REPOSITORY https://github.com/nlohmann/json.git GI
 set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(json)
 
-# ---- Luau (always via FetchContent, no submodule needed) ----
+# ---- Luau ----
 set(LUAU_BUILD_CLI OFF CACHE BOOL "" FORCE)
 set(LUAU_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LUAU_BUILD_WEB OFF CACHE BOOL "" FORCE)
