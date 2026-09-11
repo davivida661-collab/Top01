@@ -32,9 +32,13 @@ set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
 set(ZSTD_MULTITHREAD_SUPPORT OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(zstd)
 
-# ---- BLAKE3 ----
+# ---- BLAKE3 (portable C only to avoid AVX2 asm LNK1181 on VS2026) ----
 FetchContent_Declare(blake3 GIT_REPOSITORY https://github.com/BLAKE3-team/BLAKE3.git GIT_TAG 1.8.2 SOURCE_SUBDIR c)
 FetchContent_MakeAvailable(blake3)
+# Force blake3 to not use AVX2/SSE assembly objects that fail on hosted runner
+if(TARGET blake3)
+  target_compile_definitions(blake3 PRIVATE BLAKE3_NO_AVX2 BLAKE3_NO_AVX512 BLAKE3_NO_SSE41 BLAKE3_NO_SSE2)
+endif()
 
 # ---- httplib ----
 FetchContent_Declare(httplib GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git GIT_TAG v0.20.0)
