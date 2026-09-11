@@ -1,0 +1,45 @@
+name: Build Syntax
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.28'
+
+      - name: Configure
+        run: cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: Syntax-x64-Release
+          path: |
+            build/Release/Syntax.dll
+            build/Release/Syntax.lib
+          if-no-files-found: error
+
+  # Optional: verify it at least configures on Linux
+  build-linux-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build --parallel 2>&1 | head -n 100
